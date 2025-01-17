@@ -78,7 +78,7 @@ private:
             for (auto link : b->links())
             {
                 std::cout << "c" << std::endl;
-                auto shapes = link->visualShape();
+                auto shapes = link->collisionShape();
                 std::cout << "d" << std::endl;
                 if (not shapes)
                 {
@@ -89,10 +89,31 @@ private:
                 }
                 std::cout << "d" << std::endl;
 
-                for (auto j = 0; j < shapes->numChildren(); j++)
+                std::queue<cnoid::SgGroupPtr> queue;
+                queue.push(shapes);
+                std::vector<cnoid::SgNodePtr> nodes;
+
+                while (not queue.empty())
                 {
-                    std::cout << "e" << std::endl;
-                    if (dynamic_cast<cnoid::SgShape *>(shapes->child(j)) == nullptr)
+                    auto q = queue.front();
+                    queue.pop();
+                    for (auto j = 0; j < q->numChildren(); j++)
+                    {
+                        if (q->child(j)->isGroupNode())
+                        {
+                            queue.push(q->child(j)->toGroupNode());
+                        }
+                        else
+                        {
+                            nodes.push_back(q->child(j));
+                        }
+                    }
+                }
+
+                for (auto &node : nodes)
+                {
+                    auto shape = dynamic_pointer_cast<cnoid::SgShape>(node);
+                    if (shape == nullptr)
                     {
                         auto msg = b->name() + ": faild converting shape of body";
                         std::cout << msg << std::endl;
@@ -102,19 +123,9 @@ private:
 
                     std::cout << "f" << std::endl;
 
-                    auto shape = shapes->getChild<cnoid::SgShape>(j);
-                    if (not shape)
-                    {
-                        auto msg = b->name() + ": faild loading shape of body";
-                        std::cout << msg << std::endl;
-                        MessageView::instance()->putln(msg);
-                        continue;
-                    }
-                    std::cout << "f" << std::endl;
-
                     auto mesh = shape->mesh();
 
-                    if (not mesh)
+                    if (mesh == nullptr)
                     {
                         auto msg = b->name() + ": faild loading mesh of body";
                         std::cout << msg << std::endl;
@@ -124,7 +135,7 @@ private:
                     std::cout << "f" << std::endl;
 
                     auto verticles = mesh->vertices();
-                    if (not verticles)
+                    if (verticles == nullptr)
                     {
                         auto msg = b->name() + ": faild loading verticles of body";
                         std::cout << msg << std::endl;
